@@ -1,13 +1,14 @@
 package api
 
 import (
+	"controller/internal/config"
 	"controller/internal/controller"
 	"encoding/json"
 	"net/http"
 )
 
 func AddConnectorHandler(w http.ResponseWriter, r *http.Request) {
-	var cfg controller.ConnectorConfig
+	var cfg config.Connector
 	json.NewDecoder(r.Body).Decode(&cfg)
 
 	go controller.StartConnector(cfg)

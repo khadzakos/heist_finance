@@ -4,31 +4,26 @@ import (
 	"controller/internal/api"
 	"controller/internal/config"
 	"controller/internal/controller"
-	"log"
 )
 
 func main() {
-	// Загружаем конфиг
 	cfg := config.LoadConfig("configs/config.yaml")
 
-	// Запускаем все коннекторы из конфига
-	for _, conn := range cfg.Connectors {
-		go func(conn config.ConnectorConfig) {
-			controller.StartConnector(controller.ConnectorConfig{
-				Name:    conn.Name,
-				Image:   conn.Image,
-				WsUrl:   conn.WsUrl,
-				Tickers: conn.Tickers,
-			})
-		}(conn)
-
+	// Запуск коннекторов
+	for _, c := range cfg.Connectors {
+		controller.StartConnector(c)
 	}
 
-	// Запускаем мониторинг
-	go controller.MonitorConnectors()
+	// Запуск API
+	go api.StartServer()
 
-	// Запускаем API для управления коннекторами
-	log.Println("Controller started on :8080")
-	api.StartServer()
+	// Мониторинг изменений конфига
+	updateChan := make(chan struct{})
+	go controller.WatchConfigFile("configs/config.yaml", updateChan)
 
+	for {
+		<-updateChan
+		newConfig := config.LoadConfig("configs/config.yaml")
+		controller.UpdateConnectors(newConfig.Connectors)
+	}
 }

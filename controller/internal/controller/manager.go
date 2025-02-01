@@ -1,70 +1,71 @@
 package controller
 
 import (
-	"context"
+	"controller/internal/config"
 	"log"
-	"strings"
-
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"os/exec"
+	"sync"
 )
 
-type ConnectorConfig struct {
-	Name    string
-	Image   string
-	WsUrl   string
-	Tickers []string
-}
+var runningConnectors = make(map[string]bool)
+var mu sync.Mutex
 
-func StartConnector(cfg ConnectorConfig) {
-	cli, _ := client.NewClientWithOpts(client.FromEnv)
+func StartConnector(c config.Connector) {
+	mu.Lock()
+	defer mu.Unlock()
 
-	envVars := []string{
-		"WS_URL=" + cfg.WsUrl,
-		"TICKERS=" + strings.Join(cfg.Tickers, ","),
-	}
-
-	_, err := cli.ContainerCreate(context.Background(),
-		&container.Config{
-			Image: cfg.Image,
-			Env:   envVars,
-		}, nil, nil, nil, cfg.Name)
-
-	if err != nil {
-		log.Printf("Ошибка запуска %s: %v", cfg.Name, err)
+	if runningConnectors[c.Name] {
+		log.Printf("Коннектор %s уже запущен", c.Name)
 		return
 	}
 
-	cli.ContainerStart(context.Background(), cfg.Name, container.StartOptions{})
-	log.Printf("Запущен коннектор: %s (Tickers: %v)", cfg.Name, cfg.Tickers)
+	cmd := exec.Command("docker", "run", "-d", "--name", c.Name, c.Image)
+	if err := cmd.Run(); err != nil {
+		log.Printf("Ошибка запуска %s: %v\n", c.Name, err)
+		return
+	}
 
-	// Добавляем чтение логов после запуска
-	go func() {
-		reader, err := cli.ContainerLogs(context.Background(), cfg.Name, container.LogsOptions{
-			ShowStdout: true,
-			ShowStderr: true,
-			Follow:     true,
-		})
-		if err != nil {
-			log.Printf("Ошибка при получении логов %s: %v", cfg.Name, err)
-			return
-		}
-		defer reader.Close()
-
-		buf := make([]byte, 1024)
-		for {
-			n, err := reader.Read(buf)
-			if err != nil {
-				break
-			}
-			log.Print(string(buf[:n]))
-		}
-	}()
+	log.Printf("Запущен коннектор: %s\n", c.Name)
+	runningConnectors[c.Name] = true
 }
 
 func StopConnector(name string) {
-	cli, _ := client.NewClientWithOpts(client.FromEnv)
-	cli.ContainerStop(context.Background(), name, container.StopOptions{})
-	cli.ContainerRemove(context.Background(), name, container.RemoveOptions{})
-	log.Printf("Остановлен коннектор: %s", name)
+	mu.Lock()
+	defer mu.Unlock()
+
+	cmd := exec.Command("docker", "rm", "-f", name)
+	if err := cmd.Run(); err != nil {
+		log.Printf("Ошибка остановки %s: %v\n", name, err)
+		return
+	}
+
+	log.Printf("Остановлен коннектор: %s\n", name)
+	delete(runningConnectors, name)
+}
+
+func RestartConnector(name, image string) {
+	StopConnector(name)
+	StartConnector(config.Connector{Name: name, Image: image})
+}
+
+func UpdateConnectors(newConfig []config.Connector) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	current := make(map[string]bool)
+
+	// Запускаем новые и обновляем существующие
+	for _, c := range newConfig {
+		current[c.Name] = true
+		if !runningConnectors[c.Name] {
+			StartConnector(c)
+		}
+	}
+
+	// Останавливаем удаленные коннекторы
+	for name := range runningConnectors {
+		if !current[name] {
+			StopConnector(name)
+		}
+	}
 }
