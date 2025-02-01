@@ -1,0 +1,4 @@
+exchange: "binance"
+ws_url: "wss://stream.binance.com:9443/stream"
+tickers: ["btcusdt","ethusdt"]
+queue_topic: "binance_trades"

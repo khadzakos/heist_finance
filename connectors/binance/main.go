@@ -1,19 +1,18 @@
 package main
 
 import (
-	"log"
-
+	"binance-connector/broker"
 	"binance-connector/config"
 	"binance-connector/wsclient"
 )
 
 func main() {
 	cfg := config.LoadConfig()
-	client := wsclient.NewWebSocketClient(cfg.WsURL, cfg.Tickers)
+	tradesChan := make(chan wsclient.Transaction)
+	client := wsclient.NewWebSocketClient(cfg.WsURL, cfg.Tickers, tradesChan)
 
-	if err := client.Connect(); err != nil {
-		log.Fatal("Failed to connect:", err)
-	}
+	go client.ConnectWS()
+	go broker.Produce(cfg, tradesChan)
 
-	client.Listen()
+	select {}
 }
