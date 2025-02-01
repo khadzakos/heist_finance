@@ -1,0 +1,9 @@
+connectors:
+  - name: binance-connector
+    image: heist/binance-connector:latest
+    ws_url: wss://stream.binance.com:9443/stream
+    tickers: ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+  # - name: bybit
+  #   image: heist/bybit-connector:latest
+  #   ws_url: wss://stream.bybit.com/v5/public/spot
+  #   tickers: ["BTCUSDT", "ETHUSDT"]
