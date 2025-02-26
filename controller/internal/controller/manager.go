@@ -1,71 +1,203 @@
 package controller
 
 import (
+	"context"
 	"controller/internal/config"
+	"fmt"
 	"log"
-	"os/exec"
 	"sync"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 )
 
 var runningConnectors = make(map[string]bool)
 var mu sync.Mutex
 
-func StartConnector(c config.Connector) {
+// Создание клиента Docker
+func newDockerClient() (*client.Client, error) {
+	return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+}
+
+// Проверка существующего контейнера
+func containerExists(cli *client.Client, name string) (bool, string, error) {
+	containers, err := cli.ContainerList(context.Background(), container.ListOptions{All: true})
+	if err != nil {
+		return false, "", err
+	}
+
+	for _, c := range containers {
+		for _, containerName := range c.Names {
+			if containerName == "/"+name {
+				return true, c.ID, nil
+			}
+		}
+	}
+	return false, "", nil
+}
+
+// Запуск сервиса (контейнера)
+func StartService(name, image, network string, env map[string]string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	if runningConnectors[c.Name] {
-		log.Printf("Коннектор %s уже запущен", c.Name)
-		return
+	cli, err := newDockerClient()
+	if err != nil {
+		log.Printf("Ошибка создания клиента Docker: %v\n", err)
+		return err
+	}
+	defer cli.Close()
+
+	// Проверяем, существует ли контейнер
+	exists, containerID, err := containerExists(cli, name)
+	if err != nil {
+		log.Printf("Ошибка проверки контейнера %s: %v\n", name, err)
+		return err
 	}
 
-	cmd := exec.Command("docker", "run", "-d", "--name", c.Name, c.Image)
-	if err := cmd.Run(); err != nil {
-		log.Printf("Ошибка запуска %s: %v\n", c.Name, err)
-		return
+	if exists {
+		log.Printf("Контейнер %s уже существует, удаляем...", name)
+		err = cli.ContainerRemove(context.Background(), containerID, container.RemoveOptions{Force: true})
+		if err != nil {
+			log.Printf("Ошибка удаления контейнера %s: %v\n", name, err)
+			return err
+		}
 	}
 
-	log.Printf("Запущен коннектор: %s\n", c.Name)
-	runningConnectors[c.Name] = true
+	// Формируем список переменных окружения
+	var envVars []string
+	for key, value := range env {
+		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// Создание контейнера
+	resp, err := cli.ContainerCreate(
+		context.Background(),
+		&container.Config{
+			Image: image,
+			Env:   envVars,
+		},
+		&container.HostConfig{
+			NetworkMode: container.NetworkMode(network),
+		},
+		nil,
+		nil,
+		name,
+	)
+
+	if err != nil {
+		log.Printf("Ошибка создания контейнера %s: %v\n", name, err)
+		return err
+	}
+
+	// Запуск контейнера
+	err = cli.ContainerStart(context.Background(), resp.ID, container.StartOptions{})
+	if err != nil {
+		log.Printf("Ошибка запуска контейнера %s: %v\n", name, err)
+		return err
+	}
+
+	log.Printf("✅ Запущен сервис: %s\n", name)
+	return nil
 }
 
-func StopConnector(name string) {
+// Остановка и удаление контейнера
+func StopService(name string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	cmd := exec.Command("docker", "rm", "-f", name)
-	if err := cmd.Run(); err != nil {
-		log.Printf("Ошибка остановки %s: %v\n", name, err)
-		return
+	cli, err := newDockerClient()
+	if err != nil {
+		log.Printf("Ошибка создания клиента Docker: %v\n", err)
+		return err
+	}
+	defer cli.Close()
+
+	exists, containerID, err := containerExists(cli, name)
+	if err != nil {
+		log.Printf("Ошибка проверки контейнера %s: %v\n", name, err)
+		return err
 	}
 
-	log.Printf("Остановлен коннектор: %s\n", name)
-	delete(runningConnectors, name)
+	if !exists {
+		log.Printf("Контейнер %s не найден, пропускаем остановку.\n", name)
+		return nil
+	}
+
+	log.Printf("Остановка контейнера %s...", name)
+	if err := cli.ContainerStop(context.Background(), containerID, container.StopOptions{}); err != nil {
+		log.Printf("Ошибка остановки контейнера %s: %v\n", name, err)
+		return err
+	}
+
+	log.Printf("Удаление контейнера %s...", name)
+	if err := cli.ContainerRemove(context.Background(), containerID, container.RemoveOptions{}); err != nil {
+		log.Printf("Ошибка удаления контейнера %s: %v\n", name, err)
+		return err
+	}
+
+	log.Printf("🛑 Остановлен сервис: %s\n", name)
+	return nil
 }
 
-func RestartConnector(name, image string) {
-	StopConnector(name)
-	StartConnector(config.Connector{Name: name, Image: image})
+// Запуск связки connector + preprocessor
+func StartConnectorAndPreprocessor(c config.Connector, p config.Preprocessor, network string) error {
+	err := StartService(c.Name, c.Image, network, map[string]string{
+		"QUEUE":        c.Queue,
+		"RABBITMQ_URL": c.RabbitMQURL,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = StartService(p.Name, p.Image, network, map[string]string{
+		"QUEUE":        p.Queue,
+		"EXCHANGE":     p.Name,
+		"RABBITMQ_URL": p.RabbitMQURL,
+		"DATABASE_URL": p.DatabaseURL,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func UpdateConnectors(newConfig []config.Connector) {
+// Остановка связки connector + preprocessor
+func StopConnectorAndPreprocessor(c config.Connector, p config.Preprocessor) error {
+	if err := StopService(c.Name); err != nil {
+		return err
+	}
+	if err := StopService(p.Name); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Обновление сервисов (автоматический запуск/остановка)
+func UpdateServices(newConfig config.Config) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	current := make(map[string]bool)
 
-	// Запускаем новые и обновляем существующие
-	for _, c := range newConfig {
-		current[c.Name] = true
-		if !runningConnectors[c.Name] {
-			StartConnector(c)
+	for _, c := range newConfig.Connectors {
+		for _, p := range newConfig.Preprocessors {
+			if c.Queue == p.Queue { // Проверяем соответствие connector <-> preprocessor
+				current[c.Name] = true
+				if !runningConnectors[c.Name] {
+					StartConnectorAndPreprocessor(c, p, newConfig.Network)
+				}
+			}
 		}
 	}
 
-	// Останавливаем удаленные коннекторы
+	// Остановка сервисов, которых больше нет в конфиге
 	for name := range runningConnectors {
 		if !current[name] {
-			StopConnector(name)
+			StopService(name)
 		}
 	}
+
+	runningConnectors = current
 }

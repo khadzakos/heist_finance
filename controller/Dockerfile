@@ -1,21 +1,19 @@
-# FROM golang:1.20-alpine
+FROM golang:1.24-alpine AS builder
 
-# WORKDIR /app
+WORKDIR /app
 
-# # Install Docker client
-# RUN apk add --no-cache docker-cli
+COPY go.mod go.sum ./
+RUN go mod tidy
 
-# # Copy go.mod and go.sum files
-# COPY go.mod go.sum ./
+COPY . .
 
-# # Download dependencies
-# RUN go mod download
+RUN go build -o controller cmd/main.go
 
-# # Copy the source code
-# COPY . .
+FROM alpine:latest
 
-# # Build the application
-# RUN go build -o controller cmd/main.go
+WORKDIR /root/
 
-# # Run the application
-# CMD ["./controller"]
+COPY --from=builder /app/controller .
+COPY --from=builder /app/configs/ ./configs/
+
+CMD ["./controller"]

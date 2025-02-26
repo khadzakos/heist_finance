@@ -1,9 +1,27 @@
+network: "heist_finance_app-network"
+
 connectors:
-  - name: "binance"
-    image: "heist/binance-connector:latest"
-  # - name: "bybit"
+  - name: "binance-connector"
+    image: "heist/binance-connector"
+    queue: "binance_trades"
+
+  # - name: "bybit-connector"
   #   image: "heist/bybit-connector:latest"
-  # - name: "okx"
+  #   queue: "bybit_trades"
+
+  # - name: "okx-connector"
   #   image: "heist/okx-connector:latest"
-  # - name: "mexc"
-  #   image: "heist/mexc-connector:latest"
+  #   queue: "okx_trades"
+
+preprocessors:
+  - name: "binance-preprocessor"
+    image: "heist/binance-preprocessor"
+    queue: "binance_trades"
+
+  # - name: "bybit-preprocessor"
+  #   image: "heist/bybit-preprocessor:latest"
+  #   queue: "bybit_trades"
+
+  # - name: "okx-preprocessor"
+  #   image: "heist/okx-preprocessor:latest"
+  #   queue: "okx_trades"
