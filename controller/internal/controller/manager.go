@@ -38,9 +38,6 @@ func containerExists(cli *client.Client, name string) (bool, string, error) {
 
 // Запуск сервиса (контейнера)
 func StartService(name, image, network string, env map[string]string) error {
-	mu.Lock()
-	defer mu.Unlock()
-
 	cli, err := newDockerClient()
 	if err != nil {
 		log.Printf("Ошибка создания клиента Docker: %v\n", err)
@@ -103,9 +100,6 @@ func StartService(name, image, network string, env map[string]string) error {
 
 // Остановка и удаление контейнера
 func StopService(name string) error {
-	mu.Lock()
-	defer mu.Unlock()
-
 	cli, err := newDockerClient()
 	if err != nil {
 		log.Printf("Ошибка создания клиента Docker: %v\n", err)
@@ -186,18 +180,19 @@ func UpdateServices(newConfig config.Config) {
 			if c.Queue == p.Queue { // Проверяем соответствие connector <-> preprocessor
 				current[c.Name] = true
 				if !runningConnectors[c.Name] {
-					StartConnectorAndPreprocessor(c, p, newConfig.Network)
+					go StartConnectorAndPreprocessor(c, p, newConfig.Network)
 				}
 			}
 		}
 	}
 
+	// TODO: остановка сервисов, которых больше нет в конфиге - починить!
 	// Остановка сервисов, которых больше нет в конфиге
-	for name := range runningConnectors {
-		if !current[name] {
-			StopService(name)
-		}
-	}
+	// for name := range runningConnectors {
+	// 	if !current[name] {
+	// 		go StopService(name)
+	// 	}
+	// }
 
 	runningConnectors = current
 }

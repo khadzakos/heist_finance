@@ -2,7 +2,7 @@ package main
 
 import "controller/internal/app"
 
-const configPath = "configs/config.yaml"
+const configPath = "/app/configs/config.yaml"
 
 func main() {
 	app.Run(configPath)

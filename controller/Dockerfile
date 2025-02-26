@@ -14,6 +14,5 @@ FROM alpine:latest
 WORKDIR /root/
 
 COPY --from=builder /app/controller .
-COPY --from=builder /app/configs/ ./configs/
 
 CMD ["./controller"]

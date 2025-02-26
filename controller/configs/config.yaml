@@ -6,7 +6,7 @@ connectors:
     queue: "binance_trades"
 
   # - name: "bybit-connector"
-  #   image: "heist/bybit-connector:latest"
+  #   image: "heist/bybit-connector"
   #   queue: "bybit_trades"
 
   # - name: "okx-connector"
@@ -19,7 +19,7 @@ preprocessors:
     queue: "binance_trades"
 
   # - name: "bybit-preprocessor"
-  #   image: "heist/bybit-preprocessor:latest"
+  #   image: "heist/bybit-preprocessor"
   #   queue: "bybit_trades"
 
   # - name: "okx-preprocessor"

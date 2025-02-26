@@ -2,26 +2,41 @@ package controller
 
 import (
 	"log"
-	"os"
-	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
-var lastModified time.Time
-
 func WatchConfigFile(path string, updateChan chan struct{}) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalf("Ошибка создания watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	err = watcher.Add(path)
+	if err != nil {
+		log.Fatalf("Ошибка добавления файла в watcher: %v", err)
+	}
+
+	log.Println("🔄 Watcher запущен, отслеживание изменений в config.yaml")
+
 	for {
-		info, err := os.Stat(path)
-		if err != nil {
-			log.Println("Ошибка чтения config.yaml:", err)
-			continue
-		}
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
 
-		if info.ModTime().After(lastModified) && !lastModified.IsZero() {
-			lastModified = info.ModTime()
-			log.Println("Обнаружены изменения в config.yaml, обновляем коннекторы...")
-			updateChan <- struct{}{}
-		}
+			if event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
+				log.Println("📌 Обнаружены изменения в config.yaml, обновляем коннекторы...")
+				updateChan <- struct{}{}
+			}
 
-		time.Sleep(5 * time.Second)
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Printf("Ошибка watcher: %v\n", err)
+		}
 	}
 }
