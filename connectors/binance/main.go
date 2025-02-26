@@ -8,7 +8,7 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
-	tradesChan := make(chan wsclient.Transaction)
+	tradesChan := make(chan wsclient.TransactionData)
 	client := wsclient.NewWebSocketClient(cfg.WsURL, cfg.Tickers, tradesChan)
 
 	go client.ConnectWS()

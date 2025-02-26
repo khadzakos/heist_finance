@@ -9,7 +9,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-func Produce(cfg config.Config, tradesChan chan wsclient.Transaction) {
+func Produce(cfg config.Config, tradesChan chan wsclient.TransactionData) {
 	conn, err := amqp.Dial(config.GetRabbitMQConfig())
 	if err != nil {
 		log.Fatal("Ошибка подключения к RabbitMQ:", err)
@@ -22,6 +22,15 @@ func Produce(cfg config.Config, tradesChan chan wsclient.Transaction) {
 	}
 	defer ch.Close()
 
+	queue, _ := ch.QueueDeclare(
+		cfg.Queue,
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+
 	for {
 		trade := <-tradesChan
 		jsonTrade, err := json.Marshal(trade)
@@ -30,9 +39,9 @@ func Produce(cfg config.Config, tradesChan chan wsclient.Transaction) {
 			continue
 		}
 
-		err = ch.Publish( // (autodeletion)
+		err = ch.Publish(
 			"",
-			cfg.QueueTopic,
+			queue.Name,
 			false,
 			false,
 			amqp.Publishing{

@@ -1,10 +1,9 @@
 module binance-connector
 
-go 1.21
+go 1.24
 
 require (
 	github.com/gorilla/websocket v1.5.0
-	github.com/joho/godotenv v1.5.1
 	github.com/streadway/amqp v1.1.0
 	gopkg.in/yaml.v2 v2.2.8
 )

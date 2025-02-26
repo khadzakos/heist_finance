@@ -1,22 +1,22 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	WsURL      string   `yaml:"ws_url"`
-	Tickers    []string `yaml:"tickers"`
-	QueueTopic string   `yaml:"queue_topic"`
+	WsURL   string   `yaml:"ws_url"`
+	Tickers []string `yaml:"tickers"`
+	Queue   string
 }
 
 func LoadConfig() Config {
-	data, err := os.ReadFile("") // TODO: fix (config.yaml)
+	queue := os.Getenv("QUEUE")
+
+	data, err := os.ReadFile("./config/config.yaml")
 	if err != nil {
 		log.Fatal("Ошибка чтения конфигурации:", err)
 	}
@@ -26,20 +26,11 @@ func LoadConfig() Config {
 	if err != nil {
 		log.Fatal("Ошибка парсинга конфигурации:", err)
 	}
+	cfg.Queue = queue
 	return cfg
 }
 
 func GetRabbitMQConfig() string {
-	err := godotenv.Load("") // TODO: fix (secret.env)
-	if err != nil {
-		log.Fatal("Ошибка загрузки переменных окружения:", err)
-	}
-
-	login := os.Getenv("RABBITMQ_LOGIN")
-	password := os.Getenv("RABBITMQ_PASSWORD")
-	host := os.Getenv("RABBITMQ_HOST")
-	port := os.Getenv("RABBITMQ_PORT")
-
-	connURL := fmt.Sprintf("amqp://%s:%s@%s:%s/", login, password, host, port)
-	return connURL
+	login := os.Getenv("RABBITMQ_URL")
+	return login
 }

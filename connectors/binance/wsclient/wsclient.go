@@ -2,7 +2,6 @@ package wsclient
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/url"
 	"strings"
@@ -11,24 +10,26 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type TransactionData struct {
+	Symbol   string `json:"s"`
+	Price    string `json:"p"`
+	Quantity string `json:"q"`
+	Time     int64  `json:"T"`
+}
+
 type Transaction struct {
-	Stream string `json:"stream"`
-	Data   struct {
-		Price string `json:"p"`
-		Time  int64  `json:"T"`
-		Bid   string `json:"b"`
-		Ask   string `json:"a"`
-	} `json:"data"`
+	Stream string          `json:"stream"`
+	Data   TransactionData `json:"data"`
 }
 
 type WebSocketClient struct {
 	conn    *websocket.Conn
 	url     string
 	tickers []string
-	trades  chan<- Transaction
+	trades  chan<- TransactionData
 }
 
-func NewWebSocketClient(wsURL string, tickers []string, trades chan<- Transaction) *WebSocketClient {
+func NewWebSocketClient(wsURL string, tickers []string, trades chan<- TransactionData) *WebSocketClient {
 	return &WebSocketClient{
 		url:     wsURL,
 		tickers: tickers,
@@ -46,7 +47,7 @@ func (c *WebSocketClient) ConnectWS() {
 
 		streams := make([]string, len(c.tickers))
 		for i, ticker := range c.tickers {
-			streams[i] = ticker + "@trade"
+			streams[i] = ticker + "@aggTrade"
 		}
 
 		q := u.Query()
@@ -75,14 +76,12 @@ func (c *WebSocketClient) listen() {
 			return
 		}
 
-		fmt.Println("Received message:", string(message))
-
 		var msg Transaction
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Printf("JSON parse error: %v", err)
 			continue
 		}
-
-		c.trades <- msg
+		log.Println("Message: ", msg)
+		c.trades <- msg.Data
 	}
 }
