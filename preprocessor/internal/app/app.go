@@ -23,6 +23,11 @@ func Run() {
 		log.Fatal("Ошибка создания процессора:", err)
 	}
 
+	c, err := processor.NewCleaner(storage)
+	if err != nil {
+		log.Fatal("Ошибка создания очистителя:", err)
+	}
+
 	err = p.ConnectToRabbitMQ()
 	defer p.CloseConnection()
 	if err != nil {
@@ -30,5 +35,8 @@ func Run() {
 	}
 	log.Println("Подключение к RabbitMQ успешно")
 
-	p.ProcessMessages(initialWorkerCount)
+	go p.ProcessMessages(initialWorkerCount)
+	go c.CleanOldData()
+
+	select {}
 }
