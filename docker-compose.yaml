@@ -12,27 +12,72 @@ services:
     networks:
       - app-network
 
+  postgres:
+    image: postgres:17
+    hostname: postgres
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
   controller:
     image: heist/controller:latest
     container_name: controller
     restart: always
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - DATABASE_HOST=postgres
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     ports:
       - "8080:8080"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker    
+      - ${DOCKER_SOCKET}:/var/run/docker.sock
+      - ${DOCKER_BINARY}:/usr/bin/docker
+      - ./controller/configs/config.yaml:/app/configs/config.yaml
     depends_on:
-      - rabbitmq
+      - rabbitmq 
+      - postgres
     networks:
       - app-network
-      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  request-service:
+    image: heist/request-service:latest
+    container_name: request-service
+    restart: always
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  postgres-data:

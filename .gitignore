@@ -201,3 +201,10 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+# Next.js
+.next/
+
+# VSCode
+.vscode/
+.services.code-workspace/
