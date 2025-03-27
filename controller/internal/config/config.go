@@ -11,6 +11,7 @@ import (
 type Connector struct {
 	Name        string `yaml:"name"`
 	Image       string `yaml:"image"`
+	Exchange    string `yaml:"exchange"`
 	Queue       string `yaml:"queue"`
 	RabbitMQURL string
 }

@@ -3,6 +3,7 @@ network: "heist_finance_app-network"
 connectors:
   - name: "binance-connector"
     image: "heist/binance-connector"
+    exchange: "binance"
     queue: "binance_trades"
 
   # - name: "bybit-connector"
@@ -15,10 +16,12 @@ connectors:
 
 preprocessors:
   - name: "binance-preprocessor"
+    exchange: "binance"
     image: "heist/binance-preprocessor"
     queue: "binance_trades"
 
   # - name: "bybit-preprocessor"
+  #   exchange: "bybit"
   #   image: "heist/bybit-preprocessor"
   #   queue: "bybit_trades"
 

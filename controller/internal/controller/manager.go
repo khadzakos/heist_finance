@@ -167,6 +167,7 @@ func StartConnectorAndPreprocessor(c config.Connector, p config.Preprocessor, ne
 	}
 
 	err := StartService(c.Name, c.Image, network, map[string]string{
+		"EXCHANGE":     c.Exchange,
 		"QUEUE":        c.Queue,
 		"RABBITMQ_URL": c.RabbitMQURL,
 	})
