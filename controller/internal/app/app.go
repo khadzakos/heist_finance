@@ -9,6 +9,11 @@ import (
 func Run(configPath string) {
 	cfg := config.LoadConfig(configPath)
 
+	err := Migrate(config.GetDatabaseURL())
+	if err != nil {
+		log.Println("Ошибка миграции", err)
+	}
+
 	for _, c := range cfg.Connectors {
 		for _, p := range cfg.Preprocessors {
 			if c.Queue == p.Queue {

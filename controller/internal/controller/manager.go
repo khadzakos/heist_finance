@@ -5,7 +5,9 @@ import (
 	"controller/internal/config"
 	"fmt"
 	"log"
+	"net"
 	"sync"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -34,6 +36,21 @@ func containerExists(cli *client.Client, name string) (bool, string, error) {
 		}
 	}
 	return false, "", nil
+}
+
+// Функция для проверки доступности RabbitMQ
+func waitForRabbitMQ(host string, port string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for tries := 0; time.Now().Before(deadline); tries++ {
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), time.Second)
+		if err == nil {
+			conn.Close()
+			log.Printf("✅ RabbitMQ доступен после %d попыток\n", tries+1)
+			return nil
+		}
+		time.Sleep(time.Second)
+	}
+	return fmt.Errorf("timeout waiting for RabbitMQ to become available")
 }
 
 // Запуск сервиса (контейнера)
@@ -94,6 +111,14 @@ func StartService(name, image, network string, env map[string]string) error {
 		return err
 	}
 
+	// Если это RabbitMQ, ждем пока он станет доступен
+	if name == "rabbitmq" {
+		if err := waitForRabbitMQ("rabbitmq", "5672", 60*time.Second); err != nil {
+			log.Printf("Ошибка ожидания RabbitMQ: %v\n", err)
+			return err
+		}
+	}
+
 	log.Printf("✅ Запущен сервис: %s\n", name)
 	return nil
 }
@@ -136,6 +161,11 @@ func StopService(name string) error {
 
 // Запуск связки connector + preprocessor
 func StartConnectorAndPreprocessor(c config.Connector, p config.Preprocessor, network string) error {
+	// Проверяем доступность RabbitMQ перед запуском сервисов
+	if err := waitForRabbitMQ("rabbitmq", "5672", 30*time.Second); err != nil {
+		return fmt.Errorf("RabbitMQ недоступен: %v", err)
+	}
+
 	err := StartService(c.Name, c.Image, network, map[string]string{
 		"QUEUE":        c.Queue,
 		"RABBITMQ_URL": c.RabbitMQURL,
@@ -146,7 +176,7 @@ func StartConnectorAndPreprocessor(c config.Connector, p config.Preprocessor, ne
 
 	err = StartService(p.Name, p.Image, network, map[string]string{
 		"QUEUE":        p.Queue,
-		"EXCHANGE":     p.Name,
+		"EXCHANGE":     p.Exchange,
 		"RABBITMQ_URL": p.RabbitMQURL,
 		"DATABASE_URL": p.DatabaseURL,
 	})
