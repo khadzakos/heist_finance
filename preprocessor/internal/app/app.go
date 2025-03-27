@@ -16,16 +16,17 @@ func Run() {
 	}
 	defer storage.Close()
 
-	err = storage.TestConnection()
+	p, err := processor.NewProcessor(cfg, storage)
 	if err != nil {
-		log.Fatal("Ошибка тестирования подключения к DB:", err)
+		log.Fatal("Ошибка создания процессора:", err)
 	}
 
-	err = processor.ConnectToRabbitMQ(cfg.RabbitMQ.URL)
-	defer processor.CloseConnection()
+	err = p.ConnectToRabbitMQ()
+	defer p.CloseConnection()
 	if err != nil {
 		log.Fatal("Ошибка подключения к RabbitMQ:", err)
 	}
+	log.Println("Подключение к RabbitMQ успешно")
 
-	processor.ProcessMessages(cfg.Preprocessors, storage)
+	p.ProcessMessages()
 }

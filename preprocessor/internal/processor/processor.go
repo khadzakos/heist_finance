@@ -4,46 +4,43 @@ import (
 	"log"
 	"preprocessor/internal/config"
 	"preprocessor/internal/storage"
-	"strconv"
-	"time"
+	"sync"
 )
 
-type ConsumedMessage struct {
-	Symbol   string `json:"s"`
-	Price    string `json:"p"`
-	Quantity string `json:"q"`
-	Time     int64  `json:"T"`
+func NewProcessor(cfg *config.Config, db *storage.Storage) (*Processor, error) {
+	return &Processor{
+		Cfg:  cfg,
+		Db:   db,
+		Conn: nil,
+		Ch:   nil,
+	}, nil
 }
 
-func ProcessMessages(cfg config.PreprocessorConfig, db *storage.Storage) {
-	msgs, err := Ch.Consume(
-		cfg.Queue, "", true, false, false, false, nil,
+func (p *Processor) ProcessMessages() {
+	msgs, err := p.Ch.Consume(
+		p.Cfg.Preprocessor.Queue, "", true, false, false, false, nil,
 	)
 	if err != nil {
 		log.Fatal("Ошибка подписки на очередь:", err)
 	}
 
-	for msg := range msgs {
-		go func() {
-			consumedMessage, err := ConsumeMessage(msg.Body)
-			if err != nil {
-				log.Printf("Ошибка обработки сообщения: %s\n", err)
-				return
-			}
-
-			processedData := ProcessByExchange(cfg.Exchange, consumedMessage)
-			db.SaveTradeData(processedData)
-			log.Printf("Обработано (%s): %+v\n", cfg.Exchange, processedData)
-		}()
+	var wg sync.WaitGroup
+	workers := make([]*Worker, 4)
+	for i := 0; i < 4; i++ {
+		workers[i] = &Worker{
+			Id:        i,
+			Jobs:      msgs,
+			Db:        p.Db,
+			Processor: p,
+		}
+		wg.Add(1)
+		go func(w *Worker) {
+			defer wg.Done()
+			w.ProcessMessages()
+		}(workers[i])
 	}
-}
 
-func ProcessByExchange(exchange string, msg ConsumedMessage) storage.MarketData {
-	price, _ := strconv.ParseFloat(msg.Price, 64)
-	return storage.MarketData{
-		Exchange:  exchange,
-		Timestamp: time.Now().Unix(),
-		Ticker:    msg.Symbol,
-		Price:     int64(price * 100000000), // 100000000 - 8 знаков после запятой в BIGINT
-	}
+	log.Println("Запуск обработчиков")
+	wg.Wait()
+
 }

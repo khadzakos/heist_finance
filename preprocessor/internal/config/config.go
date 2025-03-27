@@ -18,12 +18,12 @@ type PreprocessorConfig struct {
 }
 
 type Config struct {
-	RabbitMQ      RabbitMQConfig
-	Database      DBConfig
-	Preprocessors PreprocessorConfig
+	RabbitMQ     RabbitMQConfig
+	Database     DBConfig
+	Preprocessor PreprocessorConfig
 }
 
-func LoadConfig() Config {
+func LoadConfig() *Config {
 	cfg := Config{
 		RabbitMQ: RabbitMQConfig{
 			URL: os.Getenv("RABBITMQ_URL"),
@@ -31,11 +31,11 @@ func LoadConfig() Config {
 		Database: DBConfig{
 			URL: os.Getenv("DATABASE_URL"),
 		},
-		Preprocessors: PreprocessorConfig{
+		Preprocessor: PreprocessorConfig{
 			Exchange: os.Getenv("EXCHANGE"),
 			Queue:    os.Getenv("QUEUE"),
 		},
 	}
 
-	return cfg
+	return &cfg
 }

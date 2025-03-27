@@ -6,35 +6,33 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var Conn *amqp.Connection
-var Ch *amqp.Channel
-
-func ConnectToRabbitMQ(url string) error {
-	var err error
-
-	Conn, err = amqp.Dial(url)
+func (p *Processor) ConnectToRabbitMQ() error {
+	conn, err := amqp.Dial(p.Cfg.RabbitMQ.URL)
 	if err != nil {
 		return err
 	}
 
-	Ch, err = Conn.Channel()
+	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
+
+	p.Conn = conn
+	p.Ch = ch
 
 	return nil
 }
 
-func CloseConnection() {
-	Ch.Close()
-	Conn.Close()
-}
-
-func ConsumeMessage(body []byte) (ConsumedMessage, error) {
+func (p *Processor) ConsumeMessage(body []byte) (ConsumedMessage, error) {
 	var msg ConsumedMessage
 	err := json.Unmarshal(body, &msg)
 	if err != nil {
 		return ConsumedMessage{}, err
 	}
 	return msg, nil
+}
+
+func (p *Processor) CloseConnection() {
+	p.Ch.Close()
+	p.Conn.Close()
 }
