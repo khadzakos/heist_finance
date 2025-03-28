@@ -30,9 +30,14 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 			return storage.MarketData{}
 		}
 
-		priceInt := int64(price * 1e2)
-		bidInt := int64(bid * 1e2)
-		askInt := int64(ask * 1e2)
+		priceInt := int64(price * 1e3)
+
+		if priceInt == 0 {
+			return storage.MarketData{}
+		}
+
+		bidInt := int64(bid * 1e3)
+		askInt := int64(ask * 1e3)
 
 		return storage.MarketData{
 			Exchange: "binance",
@@ -48,7 +53,11 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 			return storage.MarketData{}
 		}
 
-		priceInt := int64(price * 1e2)
+		priceInt := int64(price * 1e3)
+
+		if priceInt == 0 {
+			return storage.MarketData{}
+		}
 
 		return storage.MarketData{
 			Exchange: "bybit",

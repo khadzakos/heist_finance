@@ -27,7 +27,6 @@ func (s *Storage) SaveMarketData(data MarketData) error {
 	if err != nil {
 		return fmt.Errorf("failed to ensure ticker exists: %w", err)
 	}
-	log.Printf("Ticker ID: %d", tickerID)
 
 	err = s.insertMarketData(ctx, tickerID, data)
 	if err != nil {

@@ -7,6 +7,8 @@ import (
 	"preprocessor/internal/storage"
 )
 
+const initialWorkerCount = 4
+
 func Run() {
 	cfg := config.LoadConfig()
 
@@ -28,5 +30,5 @@ func Run() {
 	}
 	log.Println("Подключение к RabbitMQ успешно")
 
-	p.ProcessMessages()
+	p.ProcessMessages(initialWorkerCount)
 }
