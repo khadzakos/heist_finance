@@ -8,5 +8,6 @@ import (
 
 type ExchangeConnector interface {
 	Connect(ctx context.Context) error
-	ListenAndPublish(ctx context.Context, pub producer.MessageProducer) error
+	SubscribeToMarketData(ctx context.Context, pub producer.MessageProducer) error
+	// FetchHistoricalData(ctx context.Context, symbol string, period string, limit int) ([]HistoricalData, error)
 }

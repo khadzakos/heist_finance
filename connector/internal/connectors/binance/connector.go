@@ -57,7 +57,7 @@ func (c *BinanceConnector) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (c *BinanceConnector) ListenAndPublish(ctx context.Context, pub producer.MessageProducer) error {
+func (c *BinanceConnector) SubscribeToMarketData(ctx context.Context, pub producer.MessageProducer) error {
 	for _, chunk := range c.tickers {
 		streamURL := "wss://stream.binance.com:9443/stream?streams=" + strings.Join(chunk, "/")
 
@@ -67,14 +67,14 @@ func (c *BinanceConnector) ListenAndPublish(ctx context.Context, pub producer.Me
 			continue
 		}
 
-		go c.listenAndPublishOnConnection(ctx, conn, pub)
+		go handleConnection(ctx, conn, pub)
 	}
 
 	<-ctx.Done()
 	return ctx.Err()
 }
 
-func (c *BinanceConnector) listenAndPublishOnConnection(ctx context.Context, conn *websocket.Conn, pub producer.MessageProducer) {
+func handleConnection(ctx context.Context, conn *websocket.Conn, pub producer.MessageProducer) {
 	defer conn.Close()
 
 	for {

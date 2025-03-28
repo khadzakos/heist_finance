@@ -5,7 +5,16 @@ import (
 	"preprocessor/internal/config"
 	"preprocessor/internal/storage"
 	"sync"
+
+	"github.com/streadway/amqp"
 )
+
+type Processor struct {
+	Cfg  *config.Config
+	Db   *storage.Storage
+	Conn *amqp.Connection
+	Ch   *amqp.Channel
+}
 
 func NewProcessor(cfg *config.Config, db *storage.Storage) (*Processor, error) {
 	return &Processor{

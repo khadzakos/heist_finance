@@ -9,6 +9,7 @@ import (
 
 	"connector/internal/connectors"
 	"connector/internal/connectors/binance"
+	"connector/internal/connectors/bybit"
 )
 
 func Run() {
@@ -20,8 +21,8 @@ func Run() {
 	switch cfg.Exchange {
 	case "binance":
 		connector = binance.NewConnector()
-	// case "bybit":
-	// 	connector = bybit.NewConnector()
+	case "bybit":
+		connector = bybit.NewConnector()
 	// case "okx":
 	// 	connector = okx.NewConnector()
 	default:
@@ -40,7 +41,7 @@ func Run() {
 	if err := connector.Connect(ctx); err != nil {
 		log.Fatalf("connect: %v", err)
 	}
-	if err := connector.ListenAndPublish(ctx, pub); err != nil {
+	if err := connector.SubscribeToMarketData(ctx, pub); err != nil {
 		log.Fatalf("listen & publish: %v", err)
 	}
 }

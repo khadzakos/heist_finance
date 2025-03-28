@@ -7,21 +7,19 @@ type Storage struct {
 }
 
 type MarketData struct {
-	Exchange  string  `json:"exchange"`
-	Symbol    string  `json:"symbol"`
-	Price     float64 `json:"price"`
-	Bid       float64 `json:"bid"`
-	Ask       float64 `json:"ask"`
-	Timestamp int64   `json:"timestamp"`
+	Exchange string `json:"exchange"`
+	Symbol   string `json:"symbol"`
+	Price    int64  `json:"price"`
+	Bid      int64  `json:"bid"`
+	Ask      int64  `json:"ask"`
 }
 
 type HistoricalData struct {
-	Exchange  string  `json:"exchange"`
-	Symbol    string  `json:"symbol"`
-	Open      float64 `json:"open"`
-	High      float64 `json:"high"`
-	Low       float64 `json:"low"`
-	Close     float64 `json:"close"`
-	Volume    float64 `json:"volume"`
-	Timestamp int64   `json:"timestamp"`
+	Exchange string `json:"exchange"`
+	Symbol   string `json:"symbol"`
+	Open     int64  `json:"open"`
+	High     int64  `json:"high"`
+	Low      int64  `json:"low"`
+	Close    int64  `json:"close"`
+	Volume   int64  `json:"volume"`
 }
