@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS market_data (
     volume BIGINT,
     high_price BIGINT,
     low_price BIGINT,
-    price_change_percent BIGINT,
+    price_change_percent VARCHAR(50),
     timestamp TIMESTAMP,
     FOREIGN KEY (ticker_id) REFERENCES tickers(id)
 );
