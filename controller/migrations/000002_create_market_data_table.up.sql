@@ -2,8 +2,10 @@ CREATE TABLE IF NOT EXISTS market_data (
     id BIGSERIAL PRIMARY KEY,
     ticker_id BIGINT,
     price BIGINT,
-    bid BIGINT,
-    ask BIGINT,
+    volume BIGINT,
+    high_price BIGINT,
+    low_price BIGINT,
+    price_change_percent BIGINT,
     timestamp TIMESTAMP,
     FOREIGN KEY (ticker_id) REFERENCES tickers(id)
 );

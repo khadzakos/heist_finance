@@ -18,33 +18,40 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 			return storage.MarketData{}
 		}
 
-		bid, err := strconv.ParseFloat(data.BestBidPrice, 64)
+		volume, err := strconv.ParseFloat(data.TotalTradedBaseAssetVolume, 64)
 		if err != nil {
-			log.Printf("Failed to parse bid: %v", err)
+			log.Printf("Failed to parse volume: %v", err)
 			return storage.MarketData{}
 		}
 
-		ask, err := strconv.ParseFloat(data.BestAskPrice, 64)
+		high, err := strconv.ParseFloat(data.HighPrice, 64)
 		if err != nil {
-			log.Printf("Failed to parse ask: %v", err)
+			log.Printf("Failed to parse high: %v", err)
+			return storage.MarketData{}
+		}
+
+		low, err := strconv.ParseFloat(data.LowPrice, 64)
+		if err != nil {
+			log.Printf("Failed to parse low: %v", err)
 			return storage.MarketData{}
 		}
 
 		priceInt := int64(price * 1e3)
-
+		volumeInt := int64(volume * 1e3)
+		highInt := int64(high * 1e3)
+		lowInt := int64(low * 1e3)
 		if priceInt == 0 {
 			return storage.MarketData{}
 		}
 
-		bidInt := int64(bid * 1e3)
-		askInt := int64(ask * 1e3)
-
 		return storage.MarketData{
-			Exchange: "binance",
-			Symbol:   data.Symbol,
-			Price:    priceInt,
-			Bid:      bidInt,
-			Ask:      askInt,
+			Exchange:           "binance",
+			Symbol:             data.Symbol,
+			Price:              priceInt,
+			Volume:             volumeInt,
+			High:               highInt,
+			Low:                lowInt,
+			PriceChangePercent: data.PriceChangePercent,
 		}
 	case BybitMarketData:
 		price, err := strconv.ParseFloat(data.LastPrice, 64)
@@ -53,18 +60,40 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 			return storage.MarketData{}
 		}
 
-		priceInt := int64(price * 1e3)
+		volume, err := strconv.ParseFloat(data.Volume24h, 64)
+		if err != nil {
+			log.Printf("Failed to parse volume: %v", err)
+			return storage.MarketData{}
+		}
 
+		high, err := strconv.ParseFloat(data.HighPrice24h, 64)
+		if err != nil {
+			log.Printf("Failed to parse high: %v", err)
+			return storage.MarketData{}
+		}
+
+		low, err := strconv.ParseFloat(data.LowPrice24h, 64)
+		if err != nil {
+			log.Printf("Failed to parse low: %v", err)
+			return storage.MarketData{}
+		}
+
+		priceInt := int64(price * 1e3)
+		volumeInt := int64(volume * 1e3)
+		highInt := int64(high * 1e3)
+		lowInt := int64(low * 1e3)
 		if priceInt == 0 {
 			return storage.MarketData{}
 		}
 
 		return storage.MarketData{
-			Exchange: "bybit",
-			Symbol:   data.Symbol,
-			Price:    priceInt,
-			Bid:      priceInt,
-			Ask:      priceInt,
+			Exchange:           "bybit",
+			Symbol:             data.Symbol,
+			Price:              priceInt,
+			Volume:             volumeInt,
+			High:               highInt,
+			Low:                lowInt,
+			PriceChangePercent: data.Price24hPcnt,
 		}
 	default:
 		log.Printf("Unsupported type: %T", msg)

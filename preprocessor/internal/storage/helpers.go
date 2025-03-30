@@ -43,14 +43,14 @@ func (s *Storage) ensureTickerExists(ctx context.Context, exchange, symbol strin
 // insertMarketData - вставляет текущие рыночные данные
 func (s *Storage) insertMarketData(ctx context.Context, tickerID int64, data MarketData) error {
 	_, err := s.pool.Exec(ctx, `
-		INSERT INTO market_data (ticker_id, price, bid, ask, timestamp)
-		VALUES ($1, $2, $3, $4, $5)
-	`, tickerID, data.Price, data.Bid, data.Ask, time.Now().UTC())
+		INSERT INTO market_data (ticker_id, price, volume, high_price, low_price, price_change_percent, timestamp)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, tickerID, data.Price, data.Volume, data.High, data.Low, data.PriceChangePercent, time.Now().UTC())
 
 	if err != nil {
 		return fmt.Errorf("failed to insert market data: %w", err)
 	}
-	log.Printf("Inserted into market_data: ticker_id=%d, price=%d, bid=%d, ask=%d\n", tickerID, data.Price, data.Bid, data.Ask)
+	log.Printf("Inserted into market_data: ticker_id=%d, price=%d, volume=%d, high_price=%d, low_price=%d, price_change_percent=%s\n", tickerID, data.Price, data.Volume, data.High, data.Low, data.PriceChangePercent)
 
 	return nil
 }

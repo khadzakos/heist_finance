@@ -7,11 +7,13 @@ type Storage struct {
 }
 
 type MarketData struct {
-	Exchange string `json:"exchange"`
-	Symbol   string `json:"symbol"`
-	Price    int64  `json:"price"`
-	Bid      int64  `json:"bid"`
-	Ask      int64  `json:"ask"`
+	Exchange           string `json:"exchange"`
+	Symbol             string `json:"symbol"`
+	Price              int64  `json:"price"`
+	Volume             int64  `json:"volume"`
+	High               int64  `json:"high"`
+	Low                int64  `json:"low"`
+	PriceChangePercent string `json:"price_change_percent"`
 }
 
 type HistoricalData struct {
