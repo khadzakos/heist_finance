@@ -1,4 +1,4 @@
-package okx
+package coinbase
 
 import (
 	"context"
@@ -13,78 +13,75 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type OKXConnector struct {
+type CoinbaseConnector struct {
 	symbolChunks [][]string
 }
 
-type instrumentResponse struct {
-	Code string `json:"code"`
-	Msg  string `json:"msg"`
-	Data []struct {
-		InstID string `json:"instId"`
-		State  string `json:"state"`
-	} `json:"data"`
+type productResponse []struct {
+	ProductID string `json:"id"`
+	Status    string `json:"status"`
 }
 
 type StreamResponse struct {
-	Arg struct {
-		Channel string `json:"channel"`
-		InstID  string `json:"instId"`
-	} `json:"arg"`
-	Data []json.RawMessage `json:"data"`
+	Type        string `json:"type"`
+	Sequence    int64  `json:"sequence"`
+	ProductID   string `json:"product_id"`
+	Price       string `json:"price"`
+	Open24h     string `json:"open_24h"`
+	Volume24h   string `json:"volume_24h"`
+	Low24h      string `json:"low_24h"`
+	High24h     string `json:"high_24h"`
+	Volume30d   string `json:"volume_30d"`
+	BestBid     string `json:"best_bid"`
+	BestBidSize string `json:"best_bid_size"`
+	BestAsk     string `json:"best_ask"`
+	BestAskSize string `json:"best_ask_size"`
+	Side        string `json:"side"`
+	Time        string `json:"time"`
+	TradeID     int64  `json:"trade_id"`
+	LastSize    string `json:"last_size"`
 }
 
-func NewConnector() *OKXConnector {
-	return &OKXConnector{}
+func NewConnector() *CoinbaseConnector {
+	return &CoinbaseConnector{}
 }
 
-func (c *OKXConnector) Connect(ctx context.Context) error {
-	resp, err := http.Get("https://www.okx.com/api/v5/public/instruments?instType=SPOT")
+func (c *CoinbaseConnector) Connect(ctx context.Context) error {
+	resp, err := http.Get("https://api.exchange.coinbase.com/products")
 	if err != nil {
-		return fmt.Errorf("get instruments: %w", err)
+		return fmt.Errorf("get products: %w", err)
 	}
 	defer resp.Body.Close()
 
-	var result instrumentResponse
+	var result productResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("decode instruments: %w", err)
-	}
-
-	if result.Code != "0" {
-		return fmt.Errorf("API error: %s", result.Msg)
+		return fmt.Errorf("decode products: %w", err)
 	}
 
 	var all []string
-	for _, inst := range result.Data {
-		if inst.State == "live" {
-			all = append(all, inst.InstID)
+	for _, p := range result {
+		if p.Status == "online" {
+			all = append(all, p.ProductID)
 		}
 	}
 
-	log.Printf("OKX: found %d active instruments", len(all))
+	log.Printf("Coinbase: found %d active products", len(all))
 	c.symbolChunks = chunkStrings(all, 10)
 	return nil
 }
 
-func (c *OKXConnector) SubscribeToMarketData(ctx context.Context, pub producer.MessageProducer) error {
+func (c *CoinbaseConnector) SubscribeToMarketData(ctx context.Context, pub producer.MessageProducer) error {
 	for _, chunk := range c.symbolChunks {
-		conn, _, err := websocket.DefaultDialer.Dial("wss://ws.okx.com:8443/ws/v5/public", nil)
+		conn, _, err := websocket.DefaultDialer.Dial("wss://ws-feed.exchange.coinbase.com", nil)
 		if err != nil {
 			log.Printf("dial error: %v", err)
 			continue
 		}
 
-		var args []map[string]string
-		for _, instID := range chunk {
-			args = append(args, map[string]string{
-				"channel": "tickers",
-				"instId":  instID,
-			})
-		}
-
 		subMsg := map[string]interface{}{
-			"op":   "subscribe",
-			"args": args,
+			"type":        "subscribe",
+			"channels":    []string{"ticker"},
+			"product_ids": chunk,
 		}
 
 		if err := conn.WriteJSON(subMsg); err != nil {
@@ -108,9 +105,10 @@ func (c *OKXConnector) SubscribeToMarketData(ctx context.Context, pub producer.M
 					return
 				case <-ticker.C:
 					if err := conn.WriteJSON(map[string]interface{}{
-						"op": "ping",
+						"type": "heartbeat",
+						"on":   true,
 					}); err != nil {
-						log.Printf("ping error: %v", err)
+						log.Printf("heartbeat error: %v", err)
 						return
 					}
 				}
@@ -144,12 +142,17 @@ func handleConnection(ctx context.Context, conn *websocket.Conn, pub producer.Me
 				continue
 			}
 
-			if streamMsg.Arg.Channel == "tickers" {
+			if streamMsg.Type == "ticker" {
 				log.Printf("streamMsg: %v", streamMsg)
-				for _, data := range streamMsg.Data {
-					if err := pub.Publish(data); err != nil {
-						log.Printf("publish error: %v", err)
-					}
+
+				msg, err := json.Marshal(streamMsg)
+				if err != nil {
+					log.Printf("marshal error: %v", err)
+					continue
+				}
+
+				if err := pub.Publish(msg); err != nil {
+					log.Printf("publish error: %v", err)
 				}
 			}
 		}

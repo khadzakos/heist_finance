@@ -41,6 +41,20 @@ func (p *Processor) ConsumeMessage(body []byte) (GenericMessage, error) {
 			return nil, err
 		}
 		msg = msgBybit
+	case "okx":
+		var msgOkx OkxMarketData
+		err := json.Unmarshal(body, &msgOkx)
+		if err != nil {
+			return nil, err
+		}
+		msg = msgOkx
+	case "coinbase":
+		var msgCoinbase CoinbaseMarketData
+		err := json.Unmarshal(body, &msgCoinbase)
+		if err != nil {
+			return nil, err
+		}
+		msg = msgCoinbase
 	default:
 		return nil, fmt.Errorf("unsupported exchange: %s", p.Cfg.Preprocessor.Exchange)
 	}

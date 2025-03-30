@@ -10,6 +10,8 @@ import (
 	"connector/internal/connectors"
 	"connector/internal/connectors/binance"
 	"connector/internal/connectors/bybit"
+	"connector/internal/connectors/coinbase"
+	"connector/internal/connectors/okx"
 )
 
 func Run() {
@@ -23,8 +25,10 @@ func Run() {
 		connector = binance.NewConnector()
 	case "bybit":
 		connector = bybit.NewConnector()
-	// case "okx":
-	// 	connector = okx.NewConnector()
+	case "okx":
+		connector = okx.NewConnector()
+	case "coinbase":
+		connector = coinbase.NewConnector()
 	default:
 		log.Fatalf("unsupported exchange: %s", cfg.Exchange)
 	}
