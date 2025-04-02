@@ -1,9 +1,9 @@
 DOCKER_COMPOSE = docker-compose
 DOCKER = docker
 EXCHANGES = binance bybit coinbase okx 
-CONNECTOR_IMAGES = $(addsuffix -connector,$(EXCHANGES))  # Generates: bybit-connector coinbase-connector okx-connector
-PREPROCESSOR_IMAGES = $(addsuffix -preprocessor,$(EXCHANGES))  # Generates: bybit-preprocessor coinbase-preprocessor okx-preprocessor
-ALL_IMAGES = $(CONNECTOR_IMAGES) $(PREPROCESSOR_IMAGES)
+CONNECTOR_IMAGES = $(addsuffix -connector,$(EXCHANGES))
+PREPROCESSOR_IMAGES = $(addsuffix -preprocessor,$(EXCHANGES)) 
+ALL_IMAGES = $(CONNECTOR_IMAGES) $(PREPROCESSOR_IMAGES) 
 PROJECT_NAME = heist
 IMAGE_PREFIX = $(PROJECT_NAME)/
 
@@ -35,23 +35,14 @@ $(PREPROCESSOR_IMAGES):
 
 .PHONY: up
 up:
-	$(DOCKER_COMPOSE) up -d
+	$(DOCKER_COMPOSE) up --build -d 
 
 .PHONY: down
 down:
 	$(DOCKER_COMPOSE) down
 
-.PHONY: clean
-clean:
-	$(DOCKER_COMPOSE) down --rmi all
-	@for img in $(ALL_IMAGES); do \
-		if [ -n "$$($(DOCKER) images -q $(IMAGE_PREFIX)$$img)" ]; then \
-			$(DOCKER) rmi $(IMAGE_PREFIX)$$img; \
-		fi; \
-	done
-
 .PHONY: rebuild
-rebuild: clean build up
+rebuild: build up
 
 .PHONY: images
 images:

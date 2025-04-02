@@ -8,30 +8,30 @@ import (
 )
 
 // ensureTickerExists - добавляет тикер, если он отсутствует, и возвращает его ID
-func (s *Storage) ensureTickerExists(ctx context.Context, exchange, symbol string) (int64, error) {
+func (s *Storage) ensureTickerExists(ctx context.Context, exchange, symbol, market string) (int64, error) {
 	var tickerID int64
 
 	err := s.pool.QueryRow(ctx, `
 		SELECT id FROM tickers 
-		WHERE exchange = $1 AND symbol = $2
-	`, exchange, symbol).Scan(&tickerID)
+		WHERE exchange = $1 AND symbol = $2 AND market = $3
+	`, exchange, symbol, market).Scan(&tickerID)
 
 	if err == nil {
 		return tickerID, nil
 	}
 
 	err = s.pool.QueryRow(ctx, `
-		INSERT INTO tickers (exchange, symbol) 
-		VALUES ($1, $2)
-		ON CONFLICT (exchange, symbol) DO NOTHING
+		INSERT INTO tickers (exchange, symbol, market) 
+		VALUES ($1, $2, $3)
+		ON CONFLICT (exchange, symbol, market) DO NOTHING
 		RETURNING id
-	`, exchange, symbol).Scan(&tickerID)
+	`, exchange, symbol, market).Scan(&tickerID)
 
 	if err != nil {
 		err = s.pool.QueryRow(ctx, `
 			SELECT id FROM tickers 
-			WHERE exchange = $1 AND symbol = $2
-		`, exchange, symbol).Scan(&tickerID)
+			WHERE exchange = $1 AND symbol = $2 AND market = $3
+		`, exchange, symbol, market).Scan(&tickerID)
 		if err != nil {
 			return 0, fmt.Errorf("failed to insert or fetch ticker: %w", err)
 		}

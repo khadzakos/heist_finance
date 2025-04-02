@@ -23,7 +23,7 @@ func (s *Storage) Close() {
 func (s *Storage) SaveMarketData(data MarketData) error {
 	ctx := context.Background()
 
-	tickerID, err := s.ensureTickerExists(ctx, data.Exchange, data.Symbol)
+	tickerID, err := s.ensureTickerExists(ctx, data.Exchange, data.Symbol, data.Market)
 	if err != nil {
 		return fmt.Errorf("failed to ensure ticker exists: %w", err)
 	}
@@ -39,7 +39,7 @@ func (s *Storage) SaveMarketData(data MarketData) error {
 func (s *Storage) SaveHistoricalData(data HistoricalData) error {
 	ctx := context.Background()
 
-	tickerID, err := s.ensureTickerExists(ctx, data.Exchange, data.Symbol)
+	tickerID, err := s.ensureTickerExists(ctx, data.Exchange, data.Symbol, data.Market)
 	if err != nil {
 		return fmt.Errorf("failed to ensure ticker exists: %w", err)
 	}

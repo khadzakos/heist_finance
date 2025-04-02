@@ -45,6 +45,7 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		return storage.MarketData{
 			Exchange:           "binance",
 			Symbol:             data.Symbol,
+			Market:             "crypto",
 			Price:              priceInt,
 			Volume:             volumeInt,
 			High:               highInt,
@@ -88,12 +89,14 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		return storage.MarketData{
 			Exchange:           "bybit",
 			Symbol:             data.Symbol,
+			Market:             "crypto",
 			Price:              priceInt,
 			Volume:             volumeInt,
 			High:               highInt,
 			Low:                lowInt,
 			PriceChangePercent: data.Price24hPcnt,
 		}
+
 	case OkxMarketData:
 		price, err := strconv.ParseFloat(data.Last, 64)
 		if err != nil {
@@ -130,6 +133,7 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		return storage.MarketData{
 			Exchange:           "okx",
 			Symbol:             data.InstID,
+			Market:             "crypto",
 			Price:              priceInt,
 			Volume:             volumeInt,
 			High:               highInt,
@@ -173,6 +177,7 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		return storage.MarketData{
 			Exchange:           "coinbase",
 			Symbol:             data.ProductID,
+			Market:             "crypto",
 			Price:              priceInt,
 			Volume:             volumeInt,
 			High:               highInt,

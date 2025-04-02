@@ -62,24 +62,24 @@ services:
       retries: 5
       start_period: 40s
 
-  # request-service:
-  #   build:
-  #     context: ./request-service
-  #     dockerfile: Dockerfile
-  #   image: heist/request-service:latest
-  #   container_name: request-service
-  #   restart: always
-  #   environment:
-  #     - DATABASE_HOST=postgres
-  #     - DATABASE_USER=${DATABASE_USER}
-  #     - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-  #     - DATABASE_NAME=${DATABASE_NAME}
-  #   ports:
-  #     - "8081:8081"
-  #   depends_on:
-  #     - postgres
-  #   networks:
-  #     - app-network
+  request-service:
+    build:
+      context: ./request-service
+      dockerfile: Dockerfile
+    image: heist/request-service:latest
+    container_name: request-service
+    restart: always
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+    ports:
+      - "8081:8081"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
 
 networks:
   app-network:
