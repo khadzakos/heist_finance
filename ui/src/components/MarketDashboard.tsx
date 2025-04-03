@@ -22,8 +22,6 @@ const MarketDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [popularQuotes, setPopularQuotes] = useState<MarketData[]>([]);
-  const [topGainers, setTopGainers] = useState<MarketData[]>([]);
-  const [topLosers, setTopLosers] = useState<MarketData[]>([]);
   const [cryptoExchanges, setCryptoExchanges] = useState<Record<string, MarketData[]>>({});
   const [stockExchanges, setStockExchanges] = useState<Record<string, MarketData[]>>({});
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -124,15 +122,16 @@ const MarketDashboard: React.FC = () => {
     const mountedRef = { current: true };
     const dataRef = { current: data }; // Для отслеживания текущих данных
     let isUpdating = false; // Флаг для предотвращения параллельных запросов
+    let popularQuotesUpdateCounter = 0; // Счетчик для более частых обновлений популярных котировок
     
-    const fetchData = async () => {
+    const fetchData = async (fullUpdate = true) => {
       // Предотвращаем несколько одновременных запросов
       if (isUpdating || !mountedRef.current) return;
       
       isUpdating = true;
       
       try {
-        if (mountedRef.current) setLoading(true);
+        if (mountedRef.current && fullUpdate) setLoading(true);
         const result = await fetchHomePageData();
         
         // Сравниваем с последними данными, чтобы избежать лишних обновлений
@@ -158,25 +157,58 @@ const MarketDashboard: React.FC = () => {
           // Запоминаем новые данные для сравнения в будущем
           dataRef.current = result;
           
-          setData(result);
-          setLastUpdated(new Date());
-          
-          // Process data for all components
-          const quotes = getPopularQuotes(result);
-          setPopularQuotes(quotes);
-          
-          // Set top gainers/losers lists
-          const allAssets = [...result.crypto, ...result.stock];
-          if (allAssets.length > 0) {
-            setTopGainers(getTopPerformers(allAssets, 10));
-            setTopLosers(getWorstPerformers(allAssets, 10));
+          if (fullUpdate) {
+            setData(result);
+            setLastUpdated(new Date());
+            
+            // Process data for all components
+            const quotes = getPopularQuotes(result);
+            setPopularQuotes(quotes);
+            
+            setCryptoExchanges(groupByExchange(result.crypto));
+            setStockExchanges(groupByExchange(result.stock));
+            
+            setLoading(false);
+            setError(null);
+          } else {
+            // Частичное обновление только популярных котировок
+            const quotes = getPopularQuotes(result);
+            setPopularQuotes(prevQuotes => {
+              // Если есть предыдущие данные, обновим только цены и проценты изменения
+              if (prevQuotes.length > 0) {
+                // Создаем мапу для быстрого поиска по символу и бирже
+                const quotesMap = new Map<string, MarketData>();
+                quotes.forEach(quote => {
+                  const key = `${quote.exchange}:${quote.symbol}`;
+                  quotesMap.set(key, quote);
+                });
+                
+                // Обновляем только необходимые поля
+                return prevQuotes.map(prevQuote => {
+                  const key = `${prevQuote.exchange}:${prevQuote.symbol}`;
+                  const newQuote = quotesMap.get(key);
+                  
+                  if (newQuote) {
+                    return {
+                      ...prevQuote,
+                      price: newQuote.price,
+                      priceChangePercent: newQuote.priceChangePercent,
+                      high: newQuote.high,
+                      low: newQuote.low,
+                      volume: newQuote.volume
+                    };
+                  }
+                  
+                  return prevQuote;
+                });
+              }
+              
+              // Если нет предыдущих данных, используем новые
+              return quotes;
+            });
+            
+            setLastUpdated(new Date());
           }
-          
-          setCryptoExchanges(groupByExchange(result.crypto));
-          setStockExchanges(groupByExchange(result.stock));
-          
-          setLoading(false);
-          setError(null);
         }
       } catch (err) {
         console.error('Failed to fetch market data:', err);
@@ -189,16 +221,35 @@ const MarketDashboard: React.FC = () => {
       }
     };
 
-    // Немедленный первый запрос
-    fetchData();
+    // Немедленный первый запрос (полное обновление)
+    fetchData(true);
 
-    // Увеличиваем интервал обновления до 60 секунд для снижения нагрузки
-    const intervalId = setInterval(fetchData, 60000);
+    // Основное обновление каждые 60 секунд
+    const mainIntervalId = setInterval(() => {
+      if (mountedRef.current && !isUpdating) {
+        fetchData(true);
+      }
+    }, 60000); // 60 секунд
+    
+    // Более частое обновление только для популярных котировок
+    const quickUpdateIntervalId = setInterval(() => {
+      if (mountedRef.current && !isUpdating && dataRef.current) {
+        // Увеличиваем счетчик
+        popularQuotesUpdateCounter++;
+        
+        // Каждый 3й раз пропускаем обновление, чтобы не создавать слишком много запросов
+        if (popularQuotesUpdateCounter % 3 === 0) return;
+        
+        // Обновляем только популярные котировки
+        fetchData(false);
+      }
+    }, 15000); // 15 секунд
 
     // Cleanup function to prevent updates after unmount
     return () => {
       mountedRef.current = false;
-      clearInterval(intervalId);
+      clearInterval(mainIntervalId);
+      clearInterval(quickUpdateIntervalId);
     };
   }, []); // Empty dependency array since we don't need to re-run this effect
 

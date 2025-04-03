@@ -158,10 +158,35 @@ const AssetDetailsPage: React.FC = () => {
       if (!dataLoadedRef.current) {
         originalPrice.current = initialPrice;
         lastPrice.current = initialPrice;
+      } else {
+        // Если это не первая загрузка данных, устанавливаем направление цены
+        if (lastPrice.current !== null && initialPrice !== lastPrice.current) {
+          if (initialPrice > lastPrice.current) {
+            setPriceDirection('up');
+          } else if (initialPrice < lastPrice.current) {
+            setPriceDirection('down');
+          }
+        }
+        
+        // Обновляем последнюю цену
+        lastPrice.current = initialPrice;
       }
       
       // Update state directly
-      setAsset(result);
+      setAsset(prevAsset => {
+        if (!prevAsset) return result;
+        
+        // Обновляем только важные поля, сохраняя остальную структуру объекта
+        return {
+          ...prevAsset,
+          price: result.price,
+          priceChangePercent: result.priceChangePercent,
+          high: result.high,
+          low: result.low,
+          volume: result.volume
+        };
+      });
+      
       setSimulatedPrice(initialPrice);
       setSimulatedChange(result.priceChangePercent || '0.000%');
       
@@ -178,6 +203,14 @@ const AssetDetailsPage: React.FC = () => {
       
       // Setup price update intervals
       setupPriceUpdateIntervals(initialPrice);
+      
+      // Reset price direction after animation
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setPriceDirection(null);
+        }
+      }, 1000);
+      
     } catch (err) {
       if (isMountedRef.current) {
         setError(`Failed to fetch details for asset: ${symbol}`);
@@ -266,34 +299,58 @@ const AssetDetailsPage: React.FC = () => {
     }, 1000); // Update every second
   }, [simulatedPrice, chartData.length]);
 
+  // Effect for initial setup and cleanup
   useEffect(() => {
+    // Set mounted ref to true
     isMountedRef.current = true;
     dataLoadedRef.current = false;
     
-    if (!exchange || !symbol) return;
-
-    // Clear any existing intervals when component mounts or parameters change
+    // Clear any existing intervals
     if (updateInterval.current) {
       clearInterval(updateInterval.current);
+      updateInterval.current = null;
     }
     
     if (miniUpdateInterval.current) {
       clearInterval(miniUpdateInterval.current);
+      miniUpdateInterval.current = null;
     }
-
+    
+    // Reset state
+    setAsset(null);
+    setChartData([]);
+    setSimulatedPrice(null);
+    setSimulatedChange('');
+    setPriceDirection(null);
+    originalPrice.current = null;
+    lastPrice.current = null;
+    
+    // Load initial data
+    setLoading(true);
     fetchData();
-
+    
+    // Set up interval for API data refresh
+    const apiRefreshInterval = setInterval(() => {
+      if (isMountedRef.current) {
+        fetchData();
+      }
+    }, 10000); // Refresh from API every 10 seconds
+    
+    // Cleanup function when component unmounts
     return () => {
       isMountedRef.current = false;
       
-      // Clear intervals when component unmounts
       if (updateInterval.current) {
         clearInterval(updateInterval.current);
+        updateInterval.current = null;
       }
       
       if (miniUpdateInterval.current) {
         clearInterval(miniUpdateInterval.current);
+        miniUpdateInterval.current = null;
       }
+      
+      clearInterval(apiRefreshInterval);
     };
   }, [exchange, symbol, fetchData]);
 

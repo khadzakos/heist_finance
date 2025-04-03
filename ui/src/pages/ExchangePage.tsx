@@ -379,11 +379,62 @@ const ExchangePage: React.FC = () => {
         return;
       }
       
+      // Обновляем индикаторы изменения цен
+      const newDirections: Record<string, 'up' | 'down' | null> = {};
+      const newPrices: Record<string, number> = {};
+      
+      result.forEach(asset => {
+        if (asset.price !== undefined) {
+          const symbol = asset.symbol;
+          newPrices[symbol] = asset.price;
+          
+          // Определяем направление изменения цены
+          if (prevPricesRef.current[symbol] !== undefined) {
+            if (asset.price > prevPricesRef.current[symbol]) {
+              newDirections[symbol] = 'up';
+            } else if (asset.price < prevPricesRef.current[symbol]) {
+              newDirections[symbol] = 'down';
+            }
+          }
+        }
+      });
+      
       // Устанавливаем данные и отключаем состояние загрузки
-      setData(result);
-      dataRef.current = result;
+      setData(prevData => {
+        // Если это первая загрузка, просто используем новые данные
+        if (prevData.length === 0) {
+          dataRef.current = result;
+          return result;
+        } else {
+          // Иначе обновляем только цены, сохраняя существующие объекты
+          const updatedData = updatePricesOnly(result);
+          dataRef.current = updatedData;
+          return updatedData;
+        }
+      });
+      
+      // Обновляем индикаторы направления цен
+      setPriceDirections(newDirections);
+      
+      // Сохраняем текущие цены для следующего сравнения
+      prevPricesRef.current = newPrices;
+      
+      // Обновляем время последнего обновления
       setLastUpdated(new Date());
+      
+      // Отключаем состояние загрузки
       setLoading(false);
+      
+      // Отключаем индикаторы через 1 секунду
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
+      
+      timeoutIdRef.current = setTimeout(() => {
+        if (mountedRef.current) {
+          setPriceDirections({});
+        }
+      }, 1000);
       
     } catch (err) {
       console.error("Error fetching exchange data:", err);
@@ -395,7 +446,7 @@ const ExchangePage: React.FC = () => {
       // Сбрасываем флаг загрузки в любом случае
       isLoadingRef.current = false;
     }
-  }, [exchange]);
+  }, [exchange, updatePricesOnly]);
   
   // Настройка загрузки данных при монтировании компонента
   useEffect(() => {
@@ -422,15 +473,87 @@ const ExchangePage: React.FC = () => {
     
     // Начальная загрузка
     setLoading(true);
+    fetchData();
     
-    // Загружаем данные один раз без настройки таймеров обновления
-    const loadData = async () => {
-      if (mountedRef.current) {
-        await fetchData();
+    // Настраиваем интервал обновления данных каждые 10 секунд через API
+    intervalIdRef.current = setInterval(() => {
+      if (mountedRef.current && !isLoadingRef.current) {
+        fetchData();
       }
-    };
+    }, 10000);
     
-    loadData();
+    // Настраиваем частые мелкие обновления с симуляцией изменения цен
+    const simulationIntervalId = setInterval(() => {
+      if (!mountedRef.current || dataRef.current.length === 0) return;
+      
+      setData(prevData => {
+        if (prevData.length === 0) return prevData;
+        
+        // Создаем новые направления для анимации
+        const newDirections: Record<string, 'up' | 'down' | null> = {};
+        const newPrices: Record<string, number> = {};
+        
+        // Создаем новые данные с имитацией изменения цен
+        const updatedData = prevData.map(asset => {
+          if (asset.price === undefined) return asset;
+          
+          const symbol = asset.symbol;
+          const currentPrice = asset.price;
+          const oldPrice = prevPricesRef.current[symbol] || currentPrice;
+          
+          // Применяем случайное изменение цены (-0.2% до +0.2%)
+          const movement = (Math.random() - 0.5) * 0.004 * currentPrice;
+          const newPrice = currentPrice + movement;
+          
+          // Сохраняем новую цену и направление изменения
+          newPrices[symbol] = newPrice;
+          
+          if (newPrice > oldPrice) {
+            newDirections[symbol] = 'up';
+          } else if (newPrice < oldPrice) {
+            newDirections[symbol] = 'down';
+          }
+          
+          // Пересчитываем процент изменения, если было первоначальное значение
+          let newPercentChange = asset.priceChangePercent;
+          if (asset.priceChangePercent) {
+            const originalPercent = parseFloat(asset.priceChangePercent.toString().replace('%', ''));
+            const percentAdjustment = (movement / currentPrice) * 100;
+            const newPercent = originalPercent + percentAdjustment;
+            newPercentChange = `${newPercent.toFixed(3)}%`;
+          }
+          
+          // Возвращаем обновленный актив
+          return {
+            ...asset,
+            price: newPrice,
+            priceChangePercent: newPercentChange
+          };
+        });
+        
+        // Обновляем индикаторы направления и сохраняем новые цены
+        setPriceDirections(newDirections);
+        prevPricesRef.current = newPrices;
+        
+        // Обновляем время
+        setLastUpdated(new Date());
+        
+        // Сбрасываем направления через 1 секунду
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+        }
+        
+        timeoutIdRef.current = setTimeout(() => {
+          if (mountedRef.current) {
+            setPriceDirections({});
+          }
+        }, 1000);
+        
+        // Обновляем ссылку на данные
+        dataRef.current = updatedData;
+        return updatedData;
+      });
+    }, 2000); // Обновляем каждые 2 секунды
     
     // Очистка при размонтировании
     return () => {
@@ -445,6 +568,8 @@ const ExchangePage: React.FC = () => {
         clearTimeout(timeoutIdRef.current);
         timeoutIdRef.current = null;
       }
+      
+      clearInterval(simulationIntervalId);
     };
   }, [exchange, fetchData]);
   
