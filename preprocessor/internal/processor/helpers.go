@@ -16,6 +16,10 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 			return storage.MarketData{}
 		}
 
+		if price < 0.1 {
+			return storage.MarketData{}
+		}
+
 		volume, err := strconv.ParseFloat(data.TotalTradedBaseAssetVolume, 64)
 		if err != nil {
 			log.Printf("Failed to parse volume: %v", err)
@@ -38,9 +42,6 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		volumeInt := int64(volume * 1e3)
 		highInt := int64(high * 1e3)
 		lowInt := int64(low * 1e3)
-		if priceInt == 0 {
-			return storage.MarketData{}
-		}
 
 		return storage.MarketData{
 			Exchange:           "binance",
@@ -57,6 +58,10 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		price, err := strconv.ParseFloat(data.LastPrice, 64)
 		if err != nil {
 			log.Printf("Failed to parse price: %v", err)
+			return storage.MarketData{}
+		}
+
+		if price < 0.1 {
 			return storage.MarketData{}
 		}
 
@@ -82,9 +87,6 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		volumeInt := int64(volume * 1e3)
 		highInt := int64(high * 1e3)
 		lowInt := int64(low * 1e3)
-		if priceInt == 0 {
-			return storage.MarketData{}
-		}
 
 		return storage.MarketData{
 			Exchange:           "bybit",
@@ -101,6 +103,10 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		price, err := strconv.ParseFloat(data.Last, 64)
 		if err != nil {
 			log.Printf("Failed to parse price: %v", err)
+			return storage.MarketData{}
+		}
+
+		if price < 0.1 {
 			return storage.MarketData{}
 		}
 
@@ -126,9 +132,6 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		volumeInt := int64(volume * 1e3)
 		highInt := int64(high * 1e3)
 		lowInt := int64(low * 1e3)
-		if priceInt == 0 {
-			return storage.MarketData{}
-		}
 
 		return storage.MarketData{
 			Exchange:           "okx",
@@ -145,6 +148,10 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		price, err := strconv.ParseFloat(data.Price, 64)
 		if err != nil {
 			log.Printf("Failed to parse price: %v", err)
+			return storage.MarketData{}
+		}
+
+		if price < 0.1 {
 			return storage.MarketData{}
 		}
 
@@ -170,9 +177,6 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 		volumeInt := int64(volume * 1e3)
 		highInt := int64(high * 1e3)
 		lowInt := int64(low * 1e3)
-		if priceInt == 0 {
-			return storage.MarketData{}
-		}
 
 		return storage.MarketData{
 			Exchange:           "coinbase",

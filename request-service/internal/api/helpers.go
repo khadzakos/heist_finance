@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"request-service/internal/service"
-	"strings"
 )
 
 func writeJSON(w http.ResponseWriter, v any) {
@@ -15,9 +14,8 @@ func writeJSON(w http.ResponseWriter, v any) {
 func filterByMarket(data []service.ResponseMarketData, market string) []service.ResponseMarketData {
 	var filtered []service.ResponseMarketData
 	for _, d := range data {
-		if strings.Contains(strings.ToLower(d.Market), market) {
+		if d.Market == market {
 			filtered = append(filtered, d)
-			break
 		}
 	}
 	return filtered

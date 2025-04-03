@@ -36,8 +36,6 @@ func (h *Handler) RegisterRoutes() http.Handler {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", h.GetHomePage).Methods("GET", "OPTIONS")
-	r.HandleFunc("/crypto-market", h.GetCryptoMarket).Methods("GET", "OPTIONS")
-	r.HandleFunc("/stock-market", h.GetStockMarket).Methods("GET", "OPTIONS")
 	r.HandleFunc("/exchange/{exchange}", h.GetExchangeData).Methods("GET", "OPTIONS")
 	r.HandleFunc("/exchange/{exchange}/asset/{symbol}", h.GetAssetDetails).Methods("GET", "OPTIONS")
 
