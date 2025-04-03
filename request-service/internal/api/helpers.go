@@ -3,8 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"request-service/internal/storage"
-	"sort"
+	"request-service/internal/service"
 	"strings"
 )
 
@@ -13,8 +12,8 @@ func writeJSON(w http.ResponseWriter, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
-func filterByMarket(data []storage.MarketData, market string) []storage.MarketData {
-	var filtered []storage.MarketData
+func filterByMarket(data []service.ResponseMarketData, market string) []service.ResponseMarketData {
+	var filtered []service.ResponseMarketData
 	for _, d := range data {
 		if strings.Contains(strings.ToLower(d.Market), market) {
 			filtered = append(filtered, d)
@@ -24,12 +23,6 @@ func filterByMarket(data []storage.MarketData, market string) []storage.MarketDa
 	return filtered
 }
 
-func topAssets(data []storage.MarketData, n int) []storage.MarketData {
-	sort.Slice(data, func(i, j int) bool {
-		return data[i].Price > data[j].Price
-	})
-	if len(data) > n {
-		return data[:n]
-	}
-	return data
-}
+// func mainPageAssets(data []service.ResponseMarketData) []service.ResponseMarketData {
+
+// }

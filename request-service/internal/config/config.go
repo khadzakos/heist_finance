@@ -17,7 +17,6 @@ func LoadConfig() *Config {
 		os.Getenv("DATABASE_HOST"),
 		os.Getenv("DATABASE_NAME"),
 	)
-	fmt.Println(dbURL)
 
 	return &Config{
 		DatabaseURL: dbURL,

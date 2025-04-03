@@ -12,18 +12,6 @@ type Storage struct {
 	pool *pgxpool.Pool
 }
 
-type MarketData struct {
-	Exchange           string
-	Symbol             string
-	Market             string
-	Price              int64
-	Volume             int64
-	High               int64
-	Low                int64
-	PriceChangePercent string
-	Timestamp          time.Time
-}
-
 func NewStorage(dbURL string) (*Storage, error) {
 	pool, err := pgxpool.New(context.Background(), dbURL)
 	if err != nil {
