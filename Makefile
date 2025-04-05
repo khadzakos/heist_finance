@@ -8,7 +8,7 @@ PROJECT_NAME = heist
 IMAGE_PREFIX = $(PROJECT_NAME)/
 
 .PHONY: all
-all: build up
+all: build up ui
 
 .PHONY: build
 build: $(ALL_IMAGES)
@@ -32,6 +32,11 @@ $(PREPROCESSOR_IMAGES):
 	else \
 		echo "Image $(IMAGE_PREFIX)$@ already exists, skipping build."; \
 	fi
+
+.PHONY: ui
+ui:
+	$(DOCKER) build -t $(IMAGE_PREFIX)ui -f ui/Dockerfile ui
+	$(DOCKER) run -d -p 3000:3000 --name ui $(IMAGE_PREFIX)ui
 
 .PHONY: up
 up:

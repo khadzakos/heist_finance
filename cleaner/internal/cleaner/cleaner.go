@@ -1,8 +1,8 @@
-package processor
+package cleaner
 
 import (
+	"cleaner/internal/storage"
 	"log"
-	"preprocessor/internal/storage"
 	"time"
 )
 
@@ -17,13 +17,13 @@ func NewCleaner(db *storage.Storage) (*Cleaner, error) {
 }
 
 func (c *Cleaner) CleanOldData() {
-	log.Println("[CLEANUP] Запуск планировщика очистки")
+	log.Println("Запуск планировщика очистки")
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	go c.Db.CleanOldData()
+	c.Db.CleanOldData()
 
 	for range ticker.C {
-		go c.Db.CleanOldData()
+		c.Db.CleanOldData()
 	}
 }
