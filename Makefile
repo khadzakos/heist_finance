@@ -1,6 +1,6 @@
 DOCKER_COMPOSE = docker-compose
 DOCKER = docker
-EXCHANGES = binance bybit coinbase okx 
+EXCHANGES = binance bybit coinbase okx moex nyse nasdaq lseg
 CONNECTOR_IMAGES = $(addsuffix -connector,$(EXCHANGES))
 PREPROCESSOR_IMAGES = $(addsuffix -preprocessor,$(EXCHANGES)) 
 ALL_IMAGES = $(CONNECTOR_IMAGES) $(PREPROCESSOR_IMAGES) 
@@ -55,3 +55,21 @@ images:
 	@for img in $(ALL_IMAGES); do \
 		echo "  - $(IMAGE_PREFIX)$$img"; \
 	done
+
+.PHONY: test test-all test-cleaner test-preprocessor test-controller test-request-service
+
+test: test-all
+
+test-all: test-cleaner test-preprocessor test-controller test-request-service
+
+test-cleaner:
+	cd cleaner && make test
+
+test-preprocessor:
+	cd preprocessor && make test
+
+test-controller:
+	cd controller && make test
+
+test-request-service:
+	cd request-service && make test
