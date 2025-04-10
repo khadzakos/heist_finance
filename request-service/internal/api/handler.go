@@ -38,7 +38,7 @@ func (h *Handler) RegisterRoutes() http.Handler {
 	r.HandleFunc("/", h.GetHomePage).Methods("GET", "OPTIONS")
 	r.HandleFunc("/exchange/{exchange}", h.GetExchangeData).Methods("GET", "OPTIONS")
 	r.HandleFunc("/exchange/{exchange}/asset/{symbol}", h.GetAssetDetails).Methods("GET", "OPTIONS")
-	// r.HandleFunc("/exchange/{exchange}/asset/{symbol}/graph/{interval}", h.GetAssetGraph).Methods("GET", "OPTIONS")
+	r.HandleFunc("/exchange/{exchange}/asset/{symbol}/graph/{interval}", h.GetAssetGraph).Methods("GET", "OPTIONS")
 
 	return corsMiddleware(r)
 }
@@ -154,3 +154,5 @@ func (h *Handler) GetAssetDetails(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, "Asset not found", http.StatusNotFound)
 }
+
+func (h *Handler) GetAssetGraph(w http.ResponseWriter, r *http.Request) {}
