@@ -55,6 +55,13 @@ func (p *Processor) ConsumeMessage(body []byte) (GenericMessage, error) {
 			return nil, err
 		}
 		msg = msgCoinbase
+	case "moex":
+		var msgMoex MoexMarketData
+		err := json.Unmarshal(body, &msgMoex)
+		if err != nil {
+			return nil, err
+		}
+		msg = msgMoex
 	default:
 		return nil, fmt.Errorf("unsupported exchange: %s", p.Cfg.Preprocessor.Exchange)
 	}

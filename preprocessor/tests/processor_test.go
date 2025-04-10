@@ -32,7 +32,7 @@ func TestNewProcessor(t *testing.T) {
 	assert.Equal(t, 0, worker.Id)
 }
 
-func TestProcessor_AddWorker(t *testing.T) {
+func TestProcessor_ProcessWorker(t *testing.T) {
 	cfg := &config.Config{
 		Preprocessor: config.PreprocessorConfig{
 			Queue: "test-queue",

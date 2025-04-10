@@ -88,3 +88,15 @@ func GetDatabaseURL() string {
 
 	return databaseURL
 }
+
+func GetRabbitMQURL() string {
+	env := Environment{
+		RABBITMQ_HOST:     os.Getenv("RABBITMQ_HOST"),
+		RABBITMQ_USER:     os.Getenv("RABBITMQ_USER"),
+		RABBITMQ_PASSWORD: os.Getenv("RABBITMQ_PASSWORD"),
+	}
+
+	rabbitMQURL := fmt.Sprintf("amqp://%s:%s@%s:5672", env.RABBITMQ_USER, env.RABBITMQ_PASSWORD, env.RABBITMQ_HOST)
+
+	return rabbitMQURL
+}

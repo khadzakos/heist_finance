@@ -29,6 +29,14 @@ func Run() {
 		connector = okx.NewConnector()
 	case "coinbase":
 		connector = coinbase.NewConnector()
+	// case "moex":
+	// 	connector = moex.NewConnector()
+	// case "nyse":
+	// 	connector = nyse.NewConnector()
+	// case "nasdaq":
+	// 	connector = nasdaq.NewConnector()
+	// case "lseg":
+	// 	connector = lseg.NewConnector()
 	default:
 		log.Fatalf("unsupported exchange: %s", cfg.Exchange)
 	}

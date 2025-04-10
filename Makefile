@@ -56,11 +56,11 @@ images:
 		echo "  - $(IMAGE_PREFIX)$$img"; \
 	done
 
-.PHONY: test test-all test-cleaner test-preprocessor test-controller test-request-service
+.PHONY: test test-all test-cleaner test-preprocessor test-controller
 
 test: test-all
 
-test-all: test-cleaner test-preprocessor test-controller test-request-service
+test-all: test-cleaner test-preprocessor test-controller
 
 test-cleaner:
 	cd cleaner && make test
@@ -70,6 +70,3 @@ test-preprocessor:
 
 test-controller:
 	cd controller && make test
-
-test-request-service:
-	cd request-service && make test

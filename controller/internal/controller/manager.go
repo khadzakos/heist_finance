@@ -45,7 +45,7 @@ func waitForRabbitMQ(host string, port string, timeout time.Duration) error {
 		conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), time.Second)
 		if err == nil {
 			conn.Close()
-			log.Printf("✅ RabbitMQ доступен после %d попыток\n", tries+1)
+			log.Printf("RabbitMQ доступен после %d попыток\n", tries+1)
 			return nil
 		}
 		time.Sleep(time.Second)
@@ -62,7 +62,6 @@ func StartService(name, image, network string, env map[string]string) error {
 	}
 	defer cli.Close()
 
-	// Проверяем, существует ли контейнер
 	exists, containerID, err := containerExists(cli, name)
 	if err != nil {
 		log.Printf("Ошибка проверки контейнера %s: %v\n", name, err)
@@ -78,13 +77,11 @@ func StartService(name, image, network string, env map[string]string) error {
 		}
 	}
 
-	// Формируем список переменных окружения
 	var envVars []string
 	for key, value := range env {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	// Создание контейнера
 	resp, err := cli.ContainerCreate(
 		context.Background(),
 		&container.Config{
@@ -104,14 +101,11 @@ func StartService(name, image, network string, env map[string]string) error {
 		return err
 	}
 
-	// Запуск контейнера
 	err = cli.ContainerStart(context.Background(), resp.ID, container.StartOptions{})
 	if err != nil {
 		log.Printf("Ошибка запуска контейнера %s: %v\n", name, err)
 		return err
 	}
-
-	// Если это RabbitMQ, ждем пока он станет доступен
 	if name == "rabbitmq" {
 		if err := waitForRabbitMQ("rabbitmq", "5672", 60*time.Second); err != nil {
 			log.Printf("Ошибка ожидания RabbitMQ: %v\n", err)
@@ -119,7 +113,7 @@ func StartService(name, image, network string, env map[string]string) error {
 		}
 	}
 
-	log.Printf("✅ Запущен сервис: %s\n", name)
+	log.Printf("Запущен сервис: %s\n", name)
 	return nil
 }
 
@@ -155,13 +149,12 @@ func StopService(name string) error {
 		return err
 	}
 
-	log.Printf("🛑 Остановлен сервис: %s\n", name)
+	log.Printf("Остановлен сервис: %s\n", name)
 	return nil
 }
 
 // Запуск связки connector + preprocessor
 func StartConnectorAndPreprocessor(c config.Connector, p config.Preprocessor, network string) error {
-	// Проверяем доступность RabbitMQ перед запуском сервисов
 	if err := waitForRabbitMQ("rabbitmq", "5672", 30*time.Second); err != nil {
 		return fmt.Errorf("RabbitMQ недоступен: %v", err)
 	}
@@ -208,7 +201,7 @@ func UpdateServices(newConfig config.Config) {
 
 	for _, c := range newConfig.Connectors {
 		for _, p := range newConfig.Preprocessors {
-			if c.Queue == p.Queue { // Проверяем соответствие connector <-> preprocessor
+			if c.Queue == p.Queue {
 				current[c.Name] = true
 				if !runningConnectors[c.Name] {
 					go StartConnectorAndPreprocessor(c, p, newConfig.Network)

@@ -78,3 +78,7 @@ type OkxMarketData struct {
 	SodUtc0   string `json:"sodUtc0"`
 	SodUtc8   string `json:"sodUtc8"`
 }
+
+type MoexMarketData struct {
+	// TODO: add fields
+}

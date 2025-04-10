@@ -188,7 +188,9 @@ func (w *Worker) ProcessFloatsByExchange(msg GenericMessage) storage.MarketData 
 			Low:                lowInt,
 			PriceChangePercent: "nil",
 		}
-
+	case MoexMarketData:
+		// TODO: add fields
+		return storage.MarketData{}
 	default:
 		log.Printf("Unsupported type: %T", msg)
 		return storage.MarketData{}
